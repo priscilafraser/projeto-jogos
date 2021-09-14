@@ -21,12 +21,6 @@ app.get("/jogos", async (req, res) => {
 });
 
 
-// const getJogosValidos = () => jogos.filter(Boolean);
-
-// const getJogoById = id => getJogosValidos().find(jogo => jogo.id === id);
-
-// const getJogoIndexById = id => getJogosValidos().findIndex(jogo => jogo.id === id);
-
 //Get ID
 app.get("/jogos/:id", async (req, res) => {
   const id = req.params.id;
@@ -43,11 +37,7 @@ app.get("/jogos/:id", async (req, res) => {
     return;
   }
 
-  res.send({jogo})
-
-  // !jogo 
-  //   ? res.status(404).send({error : "Jogo não existe"}) 
-  //   : res.json(jogo); 
+  res.send({jogo});
 });
 
 // POST
