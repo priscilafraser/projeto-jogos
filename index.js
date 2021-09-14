@@ -1,4 +1,7 @@
 const express = require("express");
+const JogoSchema = require("./models/jogo");
+const mongoose = require("./database");
+
 
 const app = express(); 
 
@@ -9,89 +12,109 @@ app.use(express.json());
 
 
 //CRUD
-app.get("/", (req, res) => res.status(200).send({Saudacao : "Seja bem vindo aos melhores jogos da década de 90!"})); //
+app.get("/", (req, res) => res.status(200).send({info : "Hello MongoDB"})); //
 
 //Get lista
-app.get("/jogos", (req, res) => {
-  res.json({jogos} );
+app.get("/jogos", async (req, res) => {
+  const jogos = await JogoSchema.find();
+  res.send({jogos});
 });
 
-const getJogosValidos = () => jogos.filter(Boolean);
 
-const getJogoById = id => getJogosValidos().find(jogo => jogo.id === id);
+// const getJogosValidos = () => jogos.filter(Boolean);
 
-const getJogoIndexById = id => getJogosValidos().findIndex(jogo => jogo.id === id);
+// const getJogoById = id => getJogosValidos().find(jogo => jogo.id === id);
+
+// const getJogoIndexById = id => getJogosValidos().findIndex(jogo => jogo.id === id);
 
 //Get ID
-app.get("/jogos/:idJogo", (req, res) => {
-  const id = +req.params.idJogo;
-  const jogo = getJogoById(id)
+app.get("/jogos/:id", async (req, res) => {
+  const id = req.params.id;
+  
+  if (!mongoose.Types.ObjectId.isValid(id)){
+    res.status(422).send({error: "Id inválido!"});
+    return;
+  }
 
-  !jogo 
-    ? res.status(404).send({error : "Jogo não existe"}) 
-    : res.json(jogo); 
+  const jogo = await JogoSchema.findById(id);
+
+  if (!jogo) {
+    res.status(404).send({error : "Jogo não existe"});
+    return;
+  }
+
+  res.send({jogo})
+
+  // !jogo 
+  //   ? res.status(404).send({error : "Jogo não existe"}) 
+  //   : res.json(jogo); 
 });
 
 // POST
-app.post("/jogos", (req, res) => {
+app.post("/jogos", async (req, res) => {
   const jogo = req.body;
 
-  if (!jogo || !jogo.nome || !jogo.lancamento || !jogo.genero || !jogo.img)
+  if (!jogo || !jogo.nome || !jogo.lancamento || !jogo.genero || !jogo.img) {
     res.status(400).send({error : 'Jogo inválido'});
-
-  const ultimoJogo =  jogos[jogos.length - 1]
-
-  if (jogos.length) {
-      jogo.id = ultimoJogo.id + 1
-      jogos.push(jogo);
-  }else {
-      jogo.id = 1;
-      jogos.push(jogo);
+    return;
   }
+    
+  const jogoSalvo =  await new JogoSchema(jogo).save();
 
-  res.status(201).send({resp : "Novo jogo inserido com sucesso!"});
+  res.status(201).send({jogoSalvo})
+
 });
 
 // PUT
-app.put("/jogos/:id", (req, res) => {
-  const id = +req.params.id;
+app.put("/jogos/:id", async (req, res) => {
+  const id = req.params.id;
 
-  const jogoIndex = getJogoIndexById(id)
-
-  //validacao para ver se filme existe no array
-  if (jogoIndex < 0) {
-    res.status(404).send({error : "Jogo não encontrado."})
+  if (!mongoose.Types.ObjectId.isValid(id)){
+    res.status(422).send({error: "Id inválido!"});
     return;
   }
 
-  const novojogo = req.body;
+  const jogo = await JogoSchema.findById(id);
 
-  if (!novojogo || !novojogo.nome || !novojogo.lancamento || !novojogo.genero || !novojogo.img) {
+  if (!jogo) {
+    res.status(404).send({error : "Jogo não existe"});
+    return;
+  }
+
+  const novoJogo = req.body;
+
+  if (!jogo || !jogo.nome || !jogo.lancamento || !jogo.genero || !jogo.img) {
     res.status(400).send({error : 'Jogo inválido'});
     return;
   }
 
-  const jogo = getJogoById(id)
-  novojogo.id = jogo.id
+  //espere o schema fazer no bd, buscar por 1 id
+  await JogoSchema.findOneAndUpdate({_id: id}, novoJogo);
+  const jogoAtualizado = await JogoSchema.findById(id);
 
-  jogos[jogoIndex] = novojogo
-  
-  res.send("Atualização de jogo feita com sucesso!");
+  res.send({jogoAtualizado});
+
 });
 
 // DELETE
-app.delete("/jogos/:id", (req, res) => {
-  const id = +req.params.id;
+app.delete("/jogos/:id", async (req, res) => {
+  const id = req.params.id;
 
-  const jogoIndex = getJogoIndexById(id)
-  if (jogoIndex < 0) {
-    res.status(404).send({error : "Jogo não encontrado."})
+  if (!mongoose.Types.ObjectId.isValid(id)){
+    res.status(422).send({error: "Id inválido!"});
     return;
   }
 
-  jogos.splice(jogoIndex, 1);
+  const jogo = await JogoSchema.findById(id);
 
-  res.send({message : "Jogo deletado com sucesso!"});
+  if (!jogo) {
+    res.status(404).send({error : "Jogo não encontrado"});
+    return;
+  }
+
+  await JogoSchema.findByIdAndDelete(id);
+
+  res.send({message: "Jogo excluído com sucesso"});
 });
 
 
